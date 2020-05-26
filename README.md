@@ -1,5 +1,5 @@
 # ONVIF
-<img src="http://mostafadadkhah.ir/images/CCTV.png" height="200" />
+<img src="/assets/CCTV.png" height="200" />
 This package is designed to find CCTV cameras that support the ONVIF protocol. The method for finding these cameras is the [WS-Discovery](https://en.wikipedia.org/wiki/WS-Discovery) protocol.
 
 ## How to use
