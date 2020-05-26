@@ -1,6 +1,6 @@
 name: onvif
-description: A flattering package for finding and displaying CCTV cameras on local networks.
-version: 0.0.1
+description: A fluttering package for finding and displaying CCTV cameras on local networks.
+version: 0.0.2
 author: Mostafa Dadkhah <Mostafa.time@gmail.com>
 homepage: https://github.com/MostafaDadkhah/Flutter_onvif
 

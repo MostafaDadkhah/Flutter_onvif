@@ -1,23 +1,22 @@
 library onvif;
 import 'dart:async';
-import 'package:onvif/BLOC.dart';
-import 'package:onvif/Model/NetworkProtocol.dart';
 import 'package:onvif/Model/OnvifDevice.dart';
-import 'package:onvif/Model/Probe.dart';
-import 'package:onvif/Model/ProbeMatch.dart';
-import 'package:onvif/Repository/ParseData.dart';
-import 'package:onvif/Repository/ProcessResponse.dart';
-import 'package:onvif/Repository/SendData.dart';
-import 'package:onvif/Repository/Utils.dart';
-import 'package:onvif/Repository/buildMessages.dart';
-import 'package:uuid/uuid.dart';
+import 'BLOC.dart';
+import 'Model/NetworkProtocol.dart';
+import 'Model/Probe.dart';
+import 'Model/ProbeMatch.dart';
+import 'Repository/ParseData.dart';
+import 'Repository/ProcessResponse.dart';
+import 'Repository/SendData.dart';
+import 'Repository/Utils.dart';
+import 'Repository/buildMessages.dart';
 
 class ONVIF{
 
 ONVIF();
  void  getDevices(Function(OnvifDevice)onDone) async {
   List<ProbeMatch> probeMatchList = [];
-   Probe.messageID = 'uuid:'+Uuid().v4(); 
+   Probe.messageID = 'uuid:'+ getUUID(); 
    String message = buildProbeMessage(Probe.messageID );
    sendMulticast("239.255.255.250",3702, message , (messageRecivied){
     probeData.add(messageRecivied);});

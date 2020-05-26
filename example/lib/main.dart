@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:onvif/Model/OnvifDevice.dart';
-import 'package:onvif/onvif.dart';
+import 'package:onvif/ONVIF.dart';
 
 import 'VideoPlayer.dart';
 

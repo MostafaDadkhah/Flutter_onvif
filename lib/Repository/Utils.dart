@@ -1,6 +1,10 @@
 import 'package:collection/collection.dart';
 import 'package:onvif/Model/ProbeMatch.dart';
+import 'package:uuid/uuid.dart';
 
+String getUUID(){
+  return Uuid().v4();
+}
 String removePranteces(String s){
   s= s.replaceAll( "(", "");
   return s.replaceAll(")", "");
