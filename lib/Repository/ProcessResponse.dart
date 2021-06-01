@@ -22,7 +22,7 @@ void readResponse(String probes){
    Future<OnvifDevice> processMatch(ProbeMatch aProbeMatch)async{
     OnvifDevice onvifDev = OnvifDevice();
     String aSystemDateAndTime = await checkXAddrsAndGetTime(onvifDev, aProbeMatch,(device){onvifDev= device;});
-    DateTime deviceTime = await parseSystemDateAndTime(aSystemDateAndTime);
+    DateTime deviceTime = parseSystemDateAndTime(aSystemDateAndTime);
     onvifDev.timeOffset = deviceTime ; 
     return onvifDev;
   }

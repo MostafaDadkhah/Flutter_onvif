@@ -52,81 +52,64 @@ Map<String,String> readProbeMatches(String probe){
    
 }
 
-Future<DateTime> parseSystemDateAndTime(String aSystemDateAndTime)async{
-  String timeType = "tt:UTCDateTime";
-  final document = xml.parse(aSystemDateAndTime);
-  String prefix = "SOAP-ENV";
-    bool  body = document.findAllElements("SOAP-ENV:Body").isEmpty;
-       if (body){
-         prefix = "s";
-       }
-  String utcDateTime = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((utcDateTime)=> utcDateTime.findAllElements("tt:UTCDateTime").isNotEmpty)))).toString();
-  utcDateTime = removePranteces(utcDateTime);
- 
-  if (utcDateTime != 'true'){
-    timeType = "tt:LocalDateTime";
+DateTime parseSystemDateAndTime(String input) {
+  final systemDateAndTimes = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetSystemDateAndTimeResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gsdatr) {
+        return gsdatr.findElements('SystemDateAndTime', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+      });
+    });
+  });
+  if (systemDateAndTimes.isEmpty) {
+    return null;
   }
-   String hour = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((time)=> time.findAllElements("tt:Time")
-  .map((hour)=> hour.findAllElements("tt:Hour").single.text)))))).toString();
 
-  String  minute = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((time)=> time.findAllElements("tt:Time")
-  .map((minute)=> minute.findAllElements("tt:Minute").single.text)))))).toString();
+  final systemDateAndTime = systemDateAndTimes.first;
+  final utcDateTimes = systemDateAndTime.findElements('UTCDateTime', namespace: 'http://www.onvif.org/ver10/schema');
+  xml.XmlElement dateTime;
+  if (utcDateTimes.isEmpty) {
+    final localDateTimes = systemDateAndTime.findElements('LocalDateTime', namespace: 'http://www.onvif.org/ver10/schema');
+    if (localDateTimes.isEmpty) {
+      return null;
+    }
 
-  String second = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((time)=> time.findAllElements("tt:Time")
-  .map((second)=> second.findAllElements("tt:Second").single.text)))))).toString();
+    dateTime = localDateTimes.first;
+  } else {
+    dateTime = utcDateTimes.first;
+  }
 
-  String year = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((date)=> date.findAllElements("tt:Date")
-  .map((year)=> year.findAllElements("tt:Year").single.text)))))).toString();
+  final dates = dateTime.findElements('Date', namespace: 'http://www.onvif.org/ver10/schema');
+  if (dates.isEmpty) {
+    return null;
+  }
 
-  String month = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((date)=> date.findAllElements("tt:Date")
-  .map((month)=> month.findAllElements("tt:Month").single.text)))))).toString();
+  final date = dates.first;
+  final years = date.findElements('Year', namespace: 'http://www.onvif.org/ver10/schema');
+  final months = date.findElements('Month', namespace: 'http://www.onvif.org/ver10/schema');
+  final days = date.findElements('Day', namespace: 'http://www.onvif.org/ver10/schema');
+  if (years.isEmpty || months.isEmpty || days.isEmpty) {
+    return null;
+  }
 
-  String day = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((date)=> date.findAllElements("tt:Date")
-  .map((day)=> day.findAllElements("tt:Day").single.text)))))).toString();
+  final times = dateTime.findElements('Time', namespace: 'http://www.onvif.org/ver10/schema');
+  if (times.isEmpty) {
+    return null;
+  }
+
+  final time = times.first;
+  final hours = time.findElements('Hour', namespace: 'http://www.onvif.org/ver10/schema');
+  final minutes = time.findElements('Minute', namespace: 'http://www.onvif.org/ver10/schema');
+  final seconds = time.findElements('Second', namespace: 'http://www.onvif.org/ver10/schema');
+  if (hours.isEmpty || minutes.isEmpty || seconds.isEmpty) {
+    return null;
+  }
 
   return DateTime(
-    int.parse(removePranteces(year)),
-    int.parse(removePranteces(month)),
-    int.parse(removePranteces(day)),
-    int.parse(removePranteces(hour)),
-    int.parse(removePranteces(minute)),
-    int.parse(removePranteces(second)),
+    int.parse(years.first.text), int.parse(months.first.text), int.parse(days.first.text),
+    int.parse(hours.first.text), int.parse(minutes.first.text), int.parse(seconds.first.text)
   );
 }
+
 Map<String,String> parseGetDeviceInformation(String information){
  Map<String,String>deviceInformation = <String,String>{};
    xml.XmlDocument document = xml.parse(information);
