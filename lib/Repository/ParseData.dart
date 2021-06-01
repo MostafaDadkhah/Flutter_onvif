@@ -165,39 +165,27 @@ Map<String,String> parseGetCapabilities(String information){
         capablitiesData['log'] = removePranteces(logging);
         return capablitiesData;
   }
-List<NetworkProtocol>parseGetNetworkProtocols(String info){
-    xml.XmlDocument document = xml.parse(info);
-       String prefix = "SOAP-ENV";
-    String name = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getNetworkProtocolsResponse)=> getNetworkProtocolsResponse.findAllElements("tds:GetNetworkProtocolsResponse")
-    .map((networkProtocols)=> networkProtocols.findAllElements("tds:NetworkProtocols")
-    .map((name)=> name.findAllElements("tt:Name").single.text)))).toString();
-    name = removePranteces(name);
-    List<String> names = name.split(',');
 
-    String enabled = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getNetworkProtocolsResponse)=> getNetworkProtocolsResponse.findAllElements("tds:GetNetworkProtocolsResponse")
-    .map((networkProtocols)=> networkProtocols.findAllElements("tds:NetworkProtocols")
-    .map((enabled)=> enabled.findAllElements("tt:Enabled").single.text)))).toString();
-    enabled = removePranteces(enabled);
-    List<String>enableds = enabled.split(',');
+List<NetworkProtocol>parseGetNetworkProtocols(String input) {
+  final protocols = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetNetworkProtocolsResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gnpr) {
+        return gnpr.findElements('NetworkProtocols', namespace: 'http://www.onvif.org/ver10/device/wsdl').map((nps) {
+          final name = nps.findElements('Name', namespace: 'http://www.onvif.org/ver10/schema');
+          final enabled = nps.findElements('Enabled', namespace: 'http://www.onvif.org/ver10/schema');
+          final port = nps.findElements('Port', namespace: 'http://www.onvif.org/ver10/schema');
+          if (name.isEmpty || enabled.isEmpty || port.isEmpty) {
+            return null;
+          }
 
-    String port = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getNetworkProtocolsResponse)=> getNetworkProtocolsResponse.findAllElements("tds:GetNetworkProtocolsResponse")
-    .map((networkProtocols)=> networkProtocols.findAllElements("tds:NetworkProtocols")
-    .map((port)=> port.findAllElements("tt:Port").single.text)))).toString();
-    port = removePranteces(port);
-    List<String> ports = port.split(',');
-    List<NetworkProtocol> list = [];
-    for (int i= 0 ; i< names.length ; i++){
-       NetworkProtocol npObject = NetworkProtocol(names[i].trim(), (enableds[i].trim() == 'true'), int.parse(ports[i]));
-       list.add(npObject);
-    }
-    return list;
-  }  
+          return NetworkProtocol(name.first.text, enabled.first.text == 'true', int.parse(port.first.text));
+        });
+      });
+    });
+  });
+
+  return protocols.where((p) => p != null).toList();
+}
 
 List<String>parseGetProfiles(String input) {
   final elements = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
