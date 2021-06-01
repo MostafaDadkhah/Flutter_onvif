@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://www.w3.org/2003/05/soap-envelope" xmlns:tt="http://www.onvif.org/ver10/schema" xmlns:tds="http://www.onvif.org/ver10/device/wsdl">
+  <SOAP-ENV:Body>
+    <tds:GetSystemDateAndTimeResponse>
+      <tds:SystemDateAndTime>
+        <tt:DateTimeType>NTP</tt:DateTimeType>
+        <tt:DaylightSavings>true</tt:DaylightSavings>
+        <tt:TimeZone>
+          <tt:TZ>CET-1CEST,M3.5.0,M10.5.0</tt:TZ>
+        </tt:TimeZone>
+        <tt:UTCDateTime>
+          <tt:Time>
+            <tt:Hour>15</tt:Hour>
+            <tt:Minute>52</tt:Minute>
+            <tt:Second>25</tt:Second>
+          </tt:Time>
+          <tt:Date>
+            <tt:Year>2010</tt:Year>
+            <tt:Month>10</tt:Month>
+            <tt:Day>29</tt:Day>
+          </tt:Date>
+        </tt:UTCDateTime>
+        <tt:LocalDateTime>
+          <tt:Time>
+            <tt:Hour>17</tt:Hour>
+            <tt:Minute>52</tt:Minute>
+            <tt:Second>25</tt:Second>
+          </tt:Time>
+          <tt:Date>
+            <tt:Year>2010</tt:Year>
+            <tt:Month>10</tt:Month>
+            <tt:Day>29</tt:Day>
+          </tt:Date>
+        </tt:LocalDateTime>
+      </tds:SystemDateAndTime>
+    </tds:GetSystemDateAndTimeResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
