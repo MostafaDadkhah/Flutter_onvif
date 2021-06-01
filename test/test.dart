@@ -49,4 +49,10 @@ void main() {
     expect(output[2].enabled, equals(false));
     expect(output[2].port, equals(443));
   });
+
+  test('parseGetProfiles', () async {
+    var input = await File('test/fixtures/GetProfilesResponse.xml').readAsString();
+    var output = parseGetProfiles(input);
+    expect(output, equals(['Profile1']));
+  });
 }
