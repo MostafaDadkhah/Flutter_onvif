@@ -10,11 +10,13 @@ void main() {
   test('Test Discovery', () {
     var onvif = ONVIF();
   });
+
   test('parseSystemDateAndTime', () async {
     var input = await File('test/fixtures/GetSystemDateAndTimeResponse.xml').readAsString();
     var output = await parseSystemDateAndTime(input);
     expect(output, equals(DateTime(2010, 10, 29, 15, 52, 25)));
   });
+
   test('readProbeMatches', () async {
     var input = await File('test/fixtures/ProbeMatches.xml').readAsString();
     var output = readProbeMatches(input);
@@ -23,5 +25,14 @@ void main() {
     expect(output['XAddrs'], equals('http://169.254.76.145/onvif/services http://192.168.1.24/onvif/services'));
     expect(output['MetadataVersion'], equals('1'));
     expect(output['Address'], equals('urn:uuid:a1f48ac2-dc8b-11df-b255-00408c1836b2'));
+  });
+
+  test('parseGetCapabilities', () async {
+    var input = await File('test/fixtures/GetCapabilitiesResponse.xml').readAsString();
+    var output = parseGetCapabilities(input);
+    expect(output['XAddr'], equals('http://169.254.76.145/onvif/services'));
+    expect(output['Events'], equals('http://169.254.76.145/onvif/services'));
+    expect(output['Media'], equals('http://169.254.76.145/onvif/services'));
+    expect(output['log'], equals('true'));
   });
 }
