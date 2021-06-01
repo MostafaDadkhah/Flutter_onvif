@@ -198,18 +198,19 @@ List<NetworkProtocol>parseGetNetworkProtocols(String info){
     }
     return list;
   }  
-List<String>parseGetProfiles(String profiles){
-   xml.XmlDocument document = xml.parse(profiles);
-     String prefix = "SOAP-ENV";
-    String token = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getProfilesResponse)=> getProfilesResponse.findAllElements("trt:GetProfilesResponse")
-    .map((profiles)=> profiles.findAllElements("trt:Profiles")
-    .map((token)=> token.attributes)))).toString();
-    token = removePranteces(token);
-    List<String> tokenLists = token.split(',');
-    tokenLists = removeFreeProfileAttributes(tokenLists);
-    return tokenLists;
+
+List<String>parseGetProfiles(String input) {
+  final elements = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetProfilesResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((gpr) {
+        return gpr.findElements('Profiles', namespace: 'http://www.onvif.org/ver10/media/wsdl').map((ps) {
+          return ps.getAttribute('token');
+        });
+      });
+    });
+  });
+
+  return elements.where((e) => e != null).toList();
 }
 
 String parseGetMediaUri(String input) {
