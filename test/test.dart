@@ -55,4 +55,10 @@ void main() {
     var output = parseGetProfiles(input);
     expect(output, equals(['Profile1']));
   });
+
+  test('parseGetMediaUri', () async {
+    var input = await File('test/fixtures/GetStreamUriResponse.xml').readAsString();
+    var output = parseGetMediaUri(input);
+    expect(output, equals('rtsp://192.168.0.100/media/video1'));
+  });
 }
