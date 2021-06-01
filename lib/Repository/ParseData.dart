@@ -210,7 +210,7 @@ List<NetworkProtocol>parseGetNetworkProtocols(String info){
     List<String> ports = port.split(',');
     List<NetworkProtocol> list = [];
     for (int i= 0 ; i< names.length ; i++){
-       NetworkProtocol npObject = NetworkProtocol(names[i], (enableds[i] == 'true'), int.parse(ports[i]));
+       NetworkProtocol npObject = NetworkProtocol(names[i].trim(), (enableds[i].trim() == 'true'), int.parse(ports[i]));
        list.add(npObject);
     }
     return list;

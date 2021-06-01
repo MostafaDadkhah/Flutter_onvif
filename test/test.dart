@@ -42,10 +42,10 @@ void main() {
     expect(output[0].name, equals('HTTP'));
     expect(output[0].enabled, equals(true));
     expect(output[0].port, equals(80));
-    expect(output[1].name, equals(' RTSP'));
-    expect(output[1].enabled, equals(false));
+    expect(output[1].name, equals('RTSP'));
+    expect(output[1].enabled, equals(true));
     expect(output[1].port, equals(554));
-    expect(output[2].name, equals(' HTTPS'));
+    expect(output[2].name, equals('HTTPS'));
     expect(output[2].enabled, equals(false));
     expect(output[2].port, equals(443));
   });
