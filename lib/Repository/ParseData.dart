@@ -2,54 +2,69 @@ import 'package:onvif/Model/NetworkProtocol.dart';
 import 'package:onvif/Repository/Utils.dart';
 import 'package:xml/xml.dart' as xml;
 
-Map<String,String> readProbeMatches(String probe){
-    Map <String , String> aProbeMatch = <String, String>{};
-      final document = xml.parse(probe);
-      String prefix = "SOAP-ENV";
-      String header = document.findAllElements("SOAP-ENV:Header")
-      .map((relatesTo)=> relatesTo.findAllElements("wsa:RelatesTo").single.text).toString();
-       if (removePranteces(header) == ""){
-         prefix = "s";
-       }
+Map<String,String> readProbeMatches(String input) {
+  final document = xml.parse(input);
+  final relatesToElements = document.findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Header', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((h) {
+      return h.findElements('RelatesTo', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing');
+    });
+  });
+  if (relatesToElements.isEmpty) {
+    return {};
+  }
+
+  final probeMatchElements = document.findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('ProbeMatches', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery').expand((pms) {
+        return pms.findElements('ProbeMatch', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+      });
+    });
+  });
+
+  if (probeMatchElements.isEmpty) {
+    return {};
+  }
+
+  final result = <String, String>{};
  
-        String types = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((type)=> type.findAllElements('d:Types').single.text))).toString();
-        types = removePranteces(types);
+  final typesElements = probeMatchElements.expand((pm) {
+    return pm.findElements('Types', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  });
+  if (typesElements.isNotEmpty) {
+    result['Types'] = typesElements.map((e) => e.text).join(' ');
+  }
 
-         aProbeMatch['Types'] = types;
+  final scopesElements = probeMatchElements.expand((pm) {
+    return pm.findElements('Scopes', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  });
+  if (scopesElements.isNotEmpty) {
+    result['Scopes'] = scopesElements.map((e) => e.text).join(' ');
+  }
 
-        String scopes = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((type)=> type.findAllElements('d:Scopes').single.text))).toString();
-        scopes = removePranteces(scopes);
-        aProbeMatch['Scopes'] = scopes;
-
-         String xAddrs = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((type)=> type.findAllElements('d:XAddrs').single.text))).toString();
-        xAddrs = removePranteces(xAddrs);
-        aProbeMatch['XAddrs'] = xAddrs;
+  final xAddrsElements = probeMatchElements.expand((pm) {
+    return pm.findElements('XAddrs', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  });
+  if (xAddrsElements.isNotEmpty) {
+    result['XAddrs'] = xAddrsElements.map((e) => e.text).join(' ');
+  }
         
-        String metaDataVersion = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((type)=> type.findAllElements('d:MetadataVersion').single.text))).toString();
-        metaDataVersion = removePranteces(metaDataVersion);
-        aProbeMatch['MetadataVersion'] = metaDataVersion;
+  final metadataVersionElements = probeMatchElements.expand((pm) {
+    return pm.findElements('MetadataVersion', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  });
+  if (metadataVersionElements.isNotEmpty) {
+    result['MetadataVersion'] = metadataVersionElements.map((e) => e.text).join(' ');
+  }
 
-        String address = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((endPointRefrence)=> endPointRefrence.findAllElements("wsa:EndpointReference")
-        .map((address)=> address.findAllElements("wsa:Address").single.text)))).toString();
-        address = removePranteces(address);
-        aProbeMatch["Address"] = address;
-        return aProbeMatch;
-   
+  final addressElements = probeMatchElements.expand((pm) {
+    return pm.findElements('EndpointReference', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing').expand((er) {
+      return er.findElements('Address', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing');
+    });
+  });
+  if (metadataVersionElements.isNotEmpty) {
+    result['Address'] = addressElements.map((e) => e.text).join(' ');
+  }
+
+  return result;
 }
 
 DateTime parseSystemDateAndTime(String input) {
