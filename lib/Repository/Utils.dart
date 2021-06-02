@@ -5,10 +5,7 @@ import 'package:uuid/uuid.dart';
 String getUUID(){
   return Uuid().v4();
 }
-String removePranteces(String s){
-  s= s.replaceAll( "(", "");
-  return s.replaceAll(")", "");
-}
+
 void removeFreeProbeMatches(List<ProbeMatch> list){
    list.removeWhere((item)=>item.address == "");
 }
