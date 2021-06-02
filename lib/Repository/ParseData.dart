@@ -1,9 +1,9 @@
 import 'package:onvif/Model/NetworkProtocol.dart';
 import 'package:onvif/Repository/Utils.dart';
-import 'package:xml/xml.dart' as xml;
+import 'package:xml/xml.dart';
 
 Map<String,String> readProbeMatches(String input) {
-  final document = xml.parse(input);
+  final document = parse(input);
   final relatesToElements = document.findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
     return e.findElements('Header', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((h) {
       return h.findElements('RelatesTo', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing');
@@ -68,7 +68,7 @@ Map<String,String> readProbeMatches(String input) {
 }
 
 DateTime parseSystemDateAndTime(String input) {
-  final systemDateAndTimes = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+  final systemDateAndTimes = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
     return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
       return b.findElements('GetSystemDateAndTimeResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gsdatr) {
         return gsdatr.findElements('SystemDateAndTime', namespace: 'http://www.onvif.org/ver10/device/wsdl');
@@ -81,7 +81,7 @@ DateTime parseSystemDateAndTime(String input) {
 
   final systemDateAndTime = systemDateAndTimes.first;
   final utcDateTimes = systemDateAndTime.findElements('UTCDateTime', namespace: 'http://www.onvif.org/ver10/schema');
-  xml.XmlElement dateTime;
+  XmlElement dateTime;
   if (utcDateTimes.isEmpty) {
     final localDateTimes = systemDateAndTime.findElements('LocalDateTime', namespace: 'http://www.onvif.org/ver10/schema');
     if (localDateTimes.isEmpty) {
@@ -126,7 +126,7 @@ DateTime parseSystemDateAndTime(String input) {
 }
 
 Map<String,String> parseGetDeviceInformation(String input) {
-  final elements = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
     return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
       return b.findElements('GetDeviceInformationResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl');
     });
@@ -151,7 +151,7 @@ Map<String,String> parseGetDeviceInformation(String input) {
 }
 
 Map<String,String> parseGetCapabilities(String input) {
-  final elements = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
     return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
       return b.findElements('GetCapabilitiesResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gcr) {
         return gcr.findElements('Capabilities', namespace: 'http://www.onvif.org/ver10/device/wsdl');
@@ -198,7 +198,7 @@ Map<String,String> parseGetCapabilities(String input) {
 }
 
 List<NetworkProtocol>parseGetNetworkProtocols(String input) {
-  final protocols = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+  final protocols = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
     return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
       return b.findElements('GetNetworkProtocolsResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gnpr) {
         return gnpr.findElements('NetworkProtocols', namespace: 'http://www.onvif.org/ver10/device/wsdl').map((nps) {
@@ -219,7 +219,7 @@ List<NetworkProtocol>parseGetNetworkProtocols(String input) {
 }
 
 List<String>parseGetProfiles(String input) {
-  final elements = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
     return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
       return b.findElements('GetProfilesResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((gpr) {
         return gpr.findElements('Profiles', namespace: 'http://www.onvif.org/ver10/media/wsdl').map((ps) {
@@ -233,7 +233,7 @@ List<String>parseGetProfiles(String input) {
 }
 
 String parseGetMediaUri(String input) {
-  final elements = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
     return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
       return b.findElements('GetStreamUriResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((gsur) {
         return gsur.findElements('MediaUri', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((mu) {
