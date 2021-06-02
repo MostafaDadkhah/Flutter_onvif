@@ -150,44 +150,52 @@ Map<String,String> parseGetDeviceInformation(String input) {
   return result;
 }
 
-Map<String,String> parseGetCapabilities(String information){
-   Map <String,String> capablitiesData = <String , String>{};
-        xml.XmlDocument document = xml.parse(information);
-       String prefix = "SOAP-ENV";
-      String _xAddr = document.findAllElements("$prefix:Envelope")
-        .map((body)=> body.findAllElements("$prefix:Body")
-        .map((getCapabilitiesResponse)=>getCapabilitiesResponse.findAllElements("tds:GetCapabilitiesResponse")
-        .map((capabilities)=> capabilities.findAllElements("tds:Capabilities")
-        .map((device)=> device.findAllElements("tt:Device")
-        .map((xAddr)=>xAddr.findAllElements("tt:XAddr").single.text))))).toString();
-        capablitiesData['XAddr'] = removePranteces(_xAddr);
-
-      String events = document.findAllElements("$prefix:Envelope")
-        .map((body)=> body.findAllElements("SOAP-ENV:Body")
-        .map((getCapabilitiesResponse)=>getCapabilitiesResponse.findAllElements("tds:GetCapabilitiesResponse")
-        .map((capabilities)=> capabilities.findAllElements("tds:Capabilities")
-        .map((events)=> events.findAllElements("tt:Events")
-        .map((xAddr)=>xAddr.findAllElements("tt:XAddr").single.text))))).toString();
-        capablitiesData['Events'] = removePranteces(events);
-
-        String media = document.findAllElements("$prefix:Envelope")
-        .map((body)=> body.findAllElements("$prefix:Body")
-        .map((getCapabilitiesResponse)=>getCapabilitiesResponse.findAllElements("tds:GetCapabilitiesResponse")
-        .map((capabilities)=> capabilities.findAllElements("tds:Capabilities")
-        .map((media)=> media.findAllElements("tt:Media")
-        .map((xAddr)=>xAddr.findAllElements("tt:XAddr").single.text))))).toString();
-        capablitiesData['Media'] = removePranteces(media);
-
-        String logging = document.findAllElements("$prefix:Envelope")
-        .map((body)=> body.findAllElements("$prefix:Body")
-        .map((getCapabilitiesResponse)=>getCapabilitiesResponse.findAllElements("tds:GetCapabilitiesResponse")
-        .map((capabilities)=> capabilities.findAllElements("tds:Capabilities")
-        .map((device)=> device.findAllElements("tt:Device")
-        .map((system)=>system.findAllElements("tt:System")
-        .map((systemLogging)=> systemLogging.findAllElements("tt:SystemLogging").single.text)))))).toString();
-        capablitiesData['log'] = removePranteces(logging);
-        return capablitiesData;
+Map<String,String> parseGetCapabilities(String input) {
+  final elements = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetCapabilitiesResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gcr) {
+        return gcr.findElements('Capabilities', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+      });
+    });
+  });
+  if (elements.isEmpty) {
+    return {};
   }
+
+  final result = <String , String>{};
+
+  final deviceXAddrElements = elements.first.findElements('Device', namespace: 'http://www.onvif.org/ver10/schema').expand((d) {
+    return d.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  });
+  if (deviceXAddrElements.isNotEmpty) {
+    result['XAddr'] = deviceXAddrElements.map((e) => e.text).join(' ');
+  }
+
+  final eventsXAddrElements = elements.first.findElements('Events', namespace: 'http://www.onvif.org/ver10/schema').expand((es) {
+    return es.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  });
+  if (eventsXAddrElements.isNotEmpty) {
+    result['Events'] = eventsXAddrElements.map((e) => e.text).join(' ');
+  }
+
+  final mediaXAddrElements = elements.first.findElements('Media', namespace: 'http://www.onvif.org/ver10/schema').expand((m) {
+    return m.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  });
+  if (mediaXAddrElements.isNotEmpty) {
+    result['Media'] = mediaXAddrElements.map((e) => e.text).join(' ');
+  }
+
+  final systemLoggingElements = elements.first.findElements('Device', namespace: 'http://www.onvif.org/ver10/schema').expand((d) {
+    return d.findElements('System', namespace: 'http://www.onvif.org/ver10/schema').expand((s) {
+      return s.findElements('SystemLogging', namespace: 'http://www.onvif.org/ver10/schema');
+    });
+  });
+  if (systemLoggingElements.isNotEmpty) {
+    result['log'] = systemLoggingElements.map((e) => e.text).join(' ');
+  }
+
+  return result;
+}
 
 List<NetworkProtocol>parseGetNetworkProtocols(String input) {
   final protocols = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
