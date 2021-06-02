@@ -4,26 +4,18 @@ import 'package:xml/xml.dart';
 
 Map<String,String> readProbeMatches(String input) {
   final document = parse(input);
-  final relatesToElements = document.findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
-    return e.findElements('Header', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((h) {
-      return h.findElements('RelatesTo', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing');
-    });
-  });
-  if (relatesToElements.isEmpty) {
-    return {};
-  }
+  final relatesToElement = document
+    .getElement('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('Header', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('RelatesTo', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing');
+  if (relatesToElement == null) { return {}; }
 
-  final probeMatchElements = document.findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
-    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
-      return b.findElements('ProbeMatches', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery').expand((pms) {
-        return pms.findElements('ProbeMatch', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
-      });
-    });
-  });
-
-  if (probeMatchElements.isEmpty) {
-    return {};
-  }
+  final probeMatchElements = document
+    .getElement('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('ProbeMatches', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery')
+    ?.findElements('ProbeMatch', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  if (probeMatchElements == null) { return {}; }
 
   final result = <String, String>{};
  
@@ -68,183 +60,158 @@ Map<String,String> readProbeMatches(String input) {
 }
 
 DateTime parseSystemDateAndTime(String input) {
-  final systemDateAndTimes = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
-    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
-      return b.findElements('GetSystemDateAndTimeResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gsdatr) {
-        return gsdatr.findElements('SystemDateAndTime', namespace: 'http://www.onvif.org/ver10/device/wsdl');
-      });
-    });
-  });
-  if (systemDateAndTimes.isEmpty) {
+  final systemDateAndTime = parse(input)
+    .getElement('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('GetSystemDateAndTimeResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl')
+    ?.getElement('SystemDateAndTime', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (systemDateAndTime == null) {
     return null;
   }
 
-  final systemDateAndTime = systemDateAndTimes.first;
-  final utcDateTimes = systemDateAndTime.findElements('UTCDateTime', namespace: 'http://www.onvif.org/ver10/schema');
-  XmlElement dateTime;
-  if (utcDateTimes.isEmpty) {
-    final localDateTimes = systemDateAndTime.findElements('LocalDateTime', namespace: 'http://www.onvif.org/ver10/schema');
-    if (localDateTimes.isEmpty) {
-      return null;
-    }
-
-    dateTime = localDateTimes.first;
-  } else {
-    dateTime = utcDateTimes.first;
-  }
-
-  final dates = dateTime.findElements('Date', namespace: 'http://www.onvif.org/ver10/schema');
-  if (dates.isEmpty) {
+  final dateTime = systemDateAndTime.getElement('UTCDateTime', namespace: 'http://www.onvif.org/ver10/schema') ??
+    systemDateAndTime.getElement('LocalDateTime', namespace: 'http://www.onvif.org/ver10/schema');
+  if (dateTime == null) {
     return null;
   }
 
-  final date = dates.first;
-  final years = date.findElements('Year', namespace: 'http://www.onvif.org/ver10/schema');
-  final months = date.findElements('Month', namespace: 'http://www.onvif.org/ver10/schema');
-  final days = date.findElements('Day', namespace: 'http://www.onvif.org/ver10/schema');
-  if (years.isEmpty || months.isEmpty || days.isEmpty) {
+  final date = dateTime.getElement('Date', namespace: 'http://www.onvif.org/ver10/schema');
+  if (date == null) {
     return null;
   }
 
-  final times = dateTime.findElements('Time', namespace: 'http://www.onvif.org/ver10/schema');
-  if (times.isEmpty) {
+  final year = date.getElement('Year', namespace: 'http://www.onvif.org/ver10/schema');
+  final month = date.getElement('Month', namespace: 'http://www.onvif.org/ver10/schema');
+  final day = date.getElement('Day', namespace: 'http://www.onvif.org/ver10/schema');
+  if (year == null || month == null || day == null) {
     return null;
   }
 
-  final time = times.first;
-  final hours = time.findElements('Hour', namespace: 'http://www.onvif.org/ver10/schema');
-  final minutes = time.findElements('Minute', namespace: 'http://www.onvif.org/ver10/schema');
-  final seconds = time.findElements('Second', namespace: 'http://www.onvif.org/ver10/schema');
-  if (hours.isEmpty || minutes.isEmpty || seconds.isEmpty) {
+  final time = dateTime.getElement('Time', namespace: 'http://www.onvif.org/ver10/schema');
+  if (time == null) {
+    return null;
+  }
+
+  final hour = time.getElement('Hour', namespace: 'http://www.onvif.org/ver10/schema');
+  final minute = time.getElement('Minute', namespace: 'http://www.onvif.org/ver10/schema');
+  final second = time.getElement('Second', namespace: 'http://www.onvif.org/ver10/schema');
+  if (hour == null || minute == null || second == null) {
     return null;
   }
 
   return DateTime(
-    int.parse(years.first.text), int.parse(months.first.text), int.parse(days.first.text),
-    int.parse(hours.first.text), int.parse(minutes.first.text), int.parse(seconds.first.text)
+    int.parse(year.text), int.parse(month.text), int.parse(day.text),
+    int.parse(hour.text), int.parse(minute.text), int.parse(second.text)
   );
 }
 
 Map<String,String> parseGetDeviceInformation(String input) {
-  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
-    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
-      return b.findElements('GetDeviceInformationResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl');
-    });
-  });
-  if (elements.isEmpty) {
+  final responseElement = parse(input)
+    .getElement('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('GetDeviceInformationResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (responseElement == null) {
     return {};
   }
 
   final result = <String,String>{};
 
-  final modelElements = elements.first.findElements('Model', namespace: 'http://www.onvif.org/ver10/device/wsdl');
-  if (modelElements.isNotEmpty) {
-    result['model'] = modelElements.first.text;
+  final modelElement = responseElement.getElement('Model', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (modelElement != null) {
+    result['model'] = modelElement.text;
   }
 
-  final serialNumberElements = elements.first.findElements('SerialNumber', namespace: 'http://www.onvif.org/ver10/device/wsdl');
-  if (serialNumberElements.isNotEmpty) {
-    result['serialNumber'] = serialNumberElements.first.text;
+  final serialNumberElement = responseElement.getElement('SerialNumber', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (serialNumberElement != null) {
+    result['serialNumber'] = serialNumberElement.text;
   }
 
   return result;
 }
 
 Map<String,String> parseGetCapabilities(String input) {
-  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
-    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
-      return b.findElements('GetCapabilitiesResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gcr) {
-        return gcr.findElements('Capabilities', namespace: 'http://www.onvif.org/ver10/device/wsdl');
-      });
-    });
-  });
-  if (elements.isEmpty) {
+  final capabilitiesElement = parse(input)
+    .getElement('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('GetCapabilitiesResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl')
+    ?.getElement('Capabilities', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (capabilitiesElement == null) {
     return {};
   }
 
   final result = <String , String>{};
 
-  final deviceXAddrElements = elements.first.findElements('Device', namespace: 'http://www.onvif.org/ver10/schema').expand((d) {
-    return d.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
-  });
-  if (deviceXAddrElements.isNotEmpty) {
-    result['XAddr'] = deviceXAddrElements.map((e) => e.text).join(' ');
+  final deviceXAddrElement = capabilitiesElement
+    .getElement('Device', namespace: 'http://www.onvif.org/ver10/schema')
+    ?.getElement('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  if (deviceXAddrElement != null) {
+    result['XAddr'] = deviceXAddrElement.text;
   }
 
-  final eventsXAddrElements = elements.first.findElements('Events', namespace: 'http://www.onvif.org/ver10/schema').expand((es) {
-    return es.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
-  });
-  if (eventsXAddrElements.isNotEmpty) {
-    result['Events'] = eventsXAddrElements.map((e) => e.text).join(' ');
+  final eventsXAddrElement = capabilitiesElement
+    .getElement('Events', namespace: 'http://www.onvif.org/ver10/schema')
+    ?.getElement('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  if (eventsXAddrElement != null) {
+    result['Events'] = eventsXAddrElement.text;
   }
 
-  final mediaXAddrElements = elements.first.findElements('Media', namespace: 'http://www.onvif.org/ver10/schema').expand((m) {
-    return m.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
-  });
-  if (mediaXAddrElements.isNotEmpty) {
-    result['Media'] = mediaXAddrElements.map((e) => e.text).join(' ');
+  final mediaXAddrElement = capabilitiesElement
+    .getElement('Media', namespace: 'http://www.onvif.org/ver10/schema')
+    ?.getElement('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  if (mediaXAddrElement != null) {
+    result['Media'] = mediaXAddrElement.text;
   }
 
-  final systemLoggingElements = elements.first.findElements('Device', namespace: 'http://www.onvif.org/ver10/schema').expand((d) {
-    return d.findElements('System', namespace: 'http://www.onvif.org/ver10/schema').expand((s) {
-      return s.findElements('SystemLogging', namespace: 'http://www.onvif.org/ver10/schema');
-    });
-  });
-  if (systemLoggingElements.isNotEmpty) {
-    result['log'] = systemLoggingElements.map((e) => e.text).join(' ');
+  final systemLoggingElement = capabilitiesElement
+    .getElement('Device', namespace: 'http://www.onvif.org/ver10/schema')
+    ?.getElement('System', namespace: 'http://www.onvif.org/ver10/schema')
+    ?.getElement('SystemLogging', namespace: 'http://www.onvif.org/ver10/schema');
+  if (systemLoggingElement != null) {
+    result['log'] = systemLoggingElement.text;
   }
 
   return result;
 }
 
 List<NetworkProtocol>parseGetNetworkProtocols(String input) {
-  final protocols = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
-    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
-      return b.findElements('GetNetworkProtocolsResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gnpr) {
-        return gnpr.findElements('NetworkProtocols', namespace: 'http://www.onvif.org/ver10/device/wsdl').map((nps) {
-          final name = nps.findElements('Name', namespace: 'http://www.onvif.org/ver10/schema');
-          final enabled = nps.findElements('Enabled', namespace: 'http://www.onvif.org/ver10/schema');
-          final port = nps.findElements('Port', namespace: 'http://www.onvif.org/ver10/schema');
-          if (name.isEmpty || enabled.isEmpty || port.isEmpty) {
-            return null;
-          }
+  final protocols = parse(input)
+    .getElement('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('GetNetworkProtocolsResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl')
+    ?.findElements('NetworkProtocols', namespace: 'http://www.onvif.org/ver10/device/wsdl').map((nps) {
+      final name = nps.getElement('Name', namespace: 'http://www.onvif.org/ver10/schema');
+      final enabled = nps.getElement('Enabled', namespace: 'http://www.onvif.org/ver10/schema');
+      final port = nps.getElement('Port', namespace: 'http://www.onvif.org/ver10/schema');
+      if (name == null || enabled == null || port == null) {
+        return null;
+      }
 
-          return NetworkProtocol(name.first.text, enabled.first.text == 'true', int.parse(port.first.text));
-        });
-      });
+      return NetworkProtocol(name.text, enabled.text == 'true', int.parse(port.text));
     });
-  });
+  if (protocols == null) { return []; }
 
   return protocols.where((p) => p != null).toList();
 }
 
 List<String>parseGetProfiles(String input) {
-  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
-    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
-      return b.findElements('GetProfilesResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((gpr) {
-        return gpr.findElements('Profiles', namespace: 'http://www.onvif.org/ver10/media/wsdl').map((ps) {
-          return ps.getAttribute('token');
-        });
-      });
+  final tokens = parse(input)
+    .getElement('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('GetProfilesResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl')
+    ?.findElements('Profiles', namespace: 'http://www.onvif.org/ver10/media/wsdl').map((ps) {
+      return ps.getAttribute('token');
     });
-  });
+  if (tokens == null) { return []; }
 
-  return elements.where((e) => e != null).toList();
+  return tokens.where((e) => e != null).toList();
 }
 
 String parseGetMediaUri(String input) {
-  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
-    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
-      return b.findElements('GetStreamUriResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((gsur) {
-        return gsur.findElements('MediaUri', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((mu) {
-          return mu.findElements('Uri', namespace: 'http://www.onvif.org/ver10/schema');
-        });
-      });
-    });
-  });
-  if (elements.isEmpty) {
-    return null;
-  }
-
-  return elements.first.text;
+  return parse(input)
+    .getElement('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope')
+    ?.getElement('GetStreamUriResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl')
+    ?.getElement('MediaUri', namespace: 'http://www.onvif.org/ver10/media/wsdl')
+    ?.getElement('Uri', namespace: 'http://www.onvif.org/ver10/schema')
+    ?.text;
 }
