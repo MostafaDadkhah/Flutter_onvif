@@ -36,6 +36,13 @@ void main() {
     expect(output['log'], equals('true'));
   });
 
+  test('parseGetDeviceInformation', () async {
+    var input = await File('test/fixtures/GetDeviceInformationResponse.xml').readAsString();
+    var output = parseGetDeviceInformation(input);
+    expect(output['model'], equals('VENDOR MODEL'));
+    expect(output['serialNumber'], equals('00408C1836B2'));
+  });
+
   test('parseGetNetworkProtocols', () async {
     var input = await File('test/fixtures/GetNetworkProtocolsResponse.xml').readAsString();
     var output = parseGetNetworkProtocols(input);
