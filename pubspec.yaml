@@ -10,7 +10,7 @@ environment:
 dependencies:
   uuid: ^2.0.4
   rxdart: ^0.24.0
-  xml: ^3.5.0
+  xml: ^4.5.0
   dio: ^3.0.9
   collection: ^1.14.11
   nonce: ^0.1.0
