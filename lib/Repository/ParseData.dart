@@ -1,240 +1,250 @@
 import 'package:onvif/Model/NetworkProtocol.dart';
 import 'package:onvif/Repository/Utils.dart';
-import 'package:xml/xml.dart' as xml;
+import 'package:xml/xml.dart';
 
-Map<String,String> readProbeMatches(String probe){
-    Map <String , String> aProbeMatch = <String, String>{};
-      final document = xml.parse(probe);
-      String prefix = "SOAP-ENV";
-      String header = document.findAllElements("SOAP-ENV:Header")
-      .map((relatesTo)=> relatesTo.findAllElements("wsa:RelatesTo").single.text).toString();
-       if (removePranteces(header) == ""){
-         prefix = "s";
-       }
+Map<String,String> readProbeMatches(String input) {
+  final document = parse(input);
+  final relatesToElements = document.findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Header', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((h) {
+      return h.findElements('RelatesTo', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing');
+    });
+  });
+  if (relatesToElements.isEmpty) {
+    return {};
+  }
+
+  final probeMatchElements = document.findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('ProbeMatches', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery').expand((pms) {
+        return pms.findElements('ProbeMatch', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+      });
+    });
+  });
+
+  if (probeMatchElements.isEmpty) {
+    return {};
+  }
+
+  final result = <String, String>{};
  
-        String types = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((type)=> type.findAllElements('d:Types').single.text))).toString();
-        types = removePranteces(types);
+  final typesElements = probeMatchElements.expand((pm) {
+    return pm.findElements('Types', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  });
+  if (typesElements.isNotEmpty) {
+    result['Types'] = typesElements.map((e) => e.text).join(' ');
+  }
 
-         aProbeMatch['Types'] = types;
+  final scopesElements = probeMatchElements.expand((pm) {
+    return pm.findElements('Scopes', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  });
+  if (scopesElements.isNotEmpty) {
+    result['Scopes'] = scopesElements.map((e) => e.text).join(' ');
+  }
 
-        String scopes = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((type)=> type.findAllElements('d:Scopes').single.text))).toString();
-        scopes = removePranteces(scopes);
-        aProbeMatch['Scopes'] = scopes;
-
-         String xAddrs = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((type)=> type.findAllElements('d:XAddrs').single.text))).toString();
-        xAddrs = removePranteces(xAddrs);
-        aProbeMatch['XAddrs'] = xAddrs;
+  final xAddrsElements = probeMatchElements.expand((pm) {
+    return pm.findElements('XAddrs', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  });
+  if (xAddrsElements.isNotEmpty) {
+    result['XAddrs'] = xAddrsElements.map((e) => e.text).join(' ');
+  }
         
-        String metaDataVersion = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((type)=> type.findAllElements('d:MetadataVersion').single.text))).toString();
-        metaDataVersion = removePranteces(metaDataVersion);
-        aProbeMatch['MetadataVersion'] = metaDataVersion;
+  final metadataVersionElements = probeMatchElements.expand((pm) {
+    return pm.findElements('MetadataVersion', namespace: 'http://schemas.xmlsoap.org/ws/2005/04/discovery');
+  });
+  if (metadataVersionElements.isNotEmpty) {
+    result['MetadataVersion'] = metadataVersionElements.map((e) => e.text).join(' ');
+  }
 
-        String address = document.findAllElements("$prefix:Body")
-        .map((probeMatches)=> probeMatches.findAllElements("d:ProbeMatches")
-        .map((probeMatch)=> probeMatch.findAllElements("d:ProbeMatch")
-        .map((endPointRefrence)=> endPointRefrence.findAllElements("wsa:EndpointReference")
-        .map((address)=> address.findAllElements("wsa:Address").single.text)))).toString();
-        address = removePranteces(address);
-        aProbeMatch["Address"] = address;
-        return aProbeMatch;
-   
+  final addressElements = probeMatchElements.expand((pm) {
+    return pm.findElements('EndpointReference', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing').expand((er) {
+      return er.findElements('Address', namespace: 'http://schemas.xmlsoap.org/ws/2004/08/addressing');
+    });
+  });
+  if (metadataVersionElements.isNotEmpty) {
+    result['Address'] = addressElements.map((e) => e.text).join(' ');
+  }
+
+  return result;
 }
 
-Future<DateTime> parseSystemDateAndTime(String aSystemDateAndTime)async{
-  String timeType = "tt:UTCDateTime";
-  final document = xml.parse(aSystemDateAndTime);
-  String prefix = "SOAP-ENV";
-    bool  body = document.findAllElements("SOAP-ENV:Body").isEmpty;
-       if (body){
-         prefix = "s";
-       }
-  String utcDateTime = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((utcDateTime)=> utcDateTime.findAllElements("tt:UTCDateTime").isNotEmpty)))).toString();
-  utcDateTime = removePranteces(utcDateTime);
- 
-  if (utcDateTime != 'true'){
-    timeType = "tt:LocalDateTime";
+DateTime parseSystemDateAndTime(String input) {
+  final systemDateAndTimes = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetSystemDateAndTimeResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gsdatr) {
+        return gsdatr.findElements('SystemDateAndTime', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+      });
+    });
+  });
+  if (systemDateAndTimes.isEmpty) {
+    return null;
   }
-   String hour = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((time)=> time.findAllElements("tt:Time")
-  .map((hour)=> hour.findAllElements("tt:Hour").single.text)))))).toString();
 
-  String  minute = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((time)=> time.findAllElements("tt:Time")
-  .map((minute)=> minute.findAllElements("tt:Minute").single.text)))))).toString();
+  final systemDateAndTime = systemDateAndTimes.first;
+  final utcDateTimes = systemDateAndTime.findElements('UTCDateTime', namespace: 'http://www.onvif.org/ver10/schema');
+  XmlElement dateTime;
+  if (utcDateTimes.isEmpty) {
+    final localDateTimes = systemDateAndTime.findElements('LocalDateTime', namespace: 'http://www.onvif.org/ver10/schema');
+    if (localDateTimes.isEmpty) {
+      return null;
+    }
 
-  String second = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((time)=> time.findAllElements("tt:Time")
-  .map((second)=> second.findAllElements("tt:Second").single.text)))))).toString();
+    dateTime = localDateTimes.first;
+  } else {
+    dateTime = utcDateTimes.first;
+  }
 
-  String year = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((date)=> date.findAllElements("tt:Date")
-  .map((year)=> year.findAllElements("tt:Year").single.text)))))).toString();
+  final dates = dateTime.findElements('Date', namespace: 'http://www.onvif.org/ver10/schema');
+  if (dates.isEmpty) {
+    return null;
+  }
 
-  String month = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((date)=> date.findAllElements("tt:Date")
-  .map((month)=> month.findAllElements("tt:Month").single.text)))))).toString();
+  final date = dates.first;
+  final years = date.findElements('Year', namespace: 'http://www.onvif.org/ver10/schema');
+  final months = date.findElements('Month', namespace: 'http://www.onvif.org/ver10/schema');
+  final days = date.findElements('Day', namespace: 'http://www.onvif.org/ver10/schema');
+  if (years.isEmpty || months.isEmpty || days.isEmpty) {
+    return null;
+  }
 
-  String day = document.findAllElements("$prefix:Envelope")
-  .map((body)=> body.findAllElements("$prefix:Body")
-  .map((getSystemDateAndTimeResponse)=> getSystemDateAndTimeResponse.findAllElements("tds:GetSystemDateAndTimeResponse")
-  .map((systemDateAndTime)=> systemDateAndTime.findAllElements("tds:SystemDateAndTime")
-  .map((localDateTime)=> localDateTime.findAllElements(timeType)
-  .map((date)=> date.findAllElements("tt:Date")
-  .map((day)=> day.findAllElements("tt:Day").single.text)))))).toString();
+  final times = dateTime.findElements('Time', namespace: 'http://www.onvif.org/ver10/schema');
+  if (times.isEmpty) {
+    return null;
+  }
+
+  final time = times.first;
+  final hours = time.findElements('Hour', namespace: 'http://www.onvif.org/ver10/schema');
+  final minutes = time.findElements('Minute', namespace: 'http://www.onvif.org/ver10/schema');
+  final seconds = time.findElements('Second', namespace: 'http://www.onvif.org/ver10/schema');
+  if (hours.isEmpty || minutes.isEmpty || seconds.isEmpty) {
+    return null;
+  }
 
   return DateTime(
-    int.parse(removePranteces(year)),
-    int.parse(removePranteces(month)),
-    int.parse(removePranteces(day)),
-    int.parse(removePranteces(hour)),
-    int.parse(removePranteces(minute)),
-    int.parse(removePranteces(second)),
+    int.parse(years.first.text), int.parse(months.first.text), int.parse(days.first.text),
+    int.parse(hours.first.text), int.parse(minutes.first.text), int.parse(seconds.first.text)
   );
 }
-Map<String,String> parseGetDeviceInformation(String information){
- Map<String,String>deviceInformation = <String,String>{};
-   xml.XmlDocument document = xml.parse(information);
-    String prefix = "SOAP-ENV";
-    String model = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getDeviceInformationResponse)=> getDeviceInformationResponse.findAllElements("tds:GetDeviceInformationResponse")
-    .map((model)=> model.findAllElements("tds:Model").single.text))).toString();
-    deviceInformation['model'] = removePranteces(model);
 
-    String serialNumber = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getDeviceInformationResponse)=> getDeviceInformationResponse.findAllElements("tds:GetDeviceInformationResponse")
-    .map((serialNumber)=> serialNumber.findAllElements("tds:SerialNumber").single.text))).toString();
-    deviceInformation['serialNumber'] = removePranteces(serialNumber);
-    return deviceInformation;
-}
-Map<String,String> parseGetCapabilities(String information){
-   Map <String,String> capablitiesData = <String , String>{};
-        xml.XmlDocument document = xml.parse(information);
-       String prefix = "SOAP-ENV";
-      String _xAddr = document.findAllElements("$prefix:Envelope")
-        .map((body)=> body.findAllElements("$prefix:Body")
-        .map((getCapabilitiesResponse)=>getCapabilitiesResponse.findAllElements("tds:GetCapabilitiesResponse")
-        .map((capabilities)=> capabilities.findAllElements("tds:Capabilities")
-        .map((device)=> device.findAllElements("tt:Device")
-        .map((xAddr)=>xAddr.findAllElements("tt:XAddr").single.text))))).toString();
-        capablitiesData['XAddr'] = removePranteces(_xAddr);
-
-      String events = document.findAllElements("$prefix:Envelope")
-        .map((body)=> body.findAllElements("SOAP-ENV:Body")
-        .map((getCapabilitiesResponse)=>getCapabilitiesResponse.findAllElements("tds:GetCapabilitiesResponse")
-        .map((capabilities)=> capabilities.findAllElements("tds:Capabilities")
-        .map((events)=> events.findAllElements("tt:Events")
-        .map((xAddr)=>xAddr.findAllElements("tt:XAddr").single.text))))).toString();
-        capablitiesData['Events'] = removePranteces(events);
-
-        String media = document.findAllElements("$prefix:Envelope")
-        .map((body)=> body.findAllElements("$prefix:Body")
-        .map((getCapabilitiesResponse)=>getCapabilitiesResponse.findAllElements("tds:GetCapabilitiesResponse")
-        .map((capabilities)=> capabilities.findAllElements("tds:Capabilities")
-        .map((media)=> media.findAllElements("tt:Media")
-        .map((xAddr)=>xAddr.findAllElements("tt:XAddr").single.text))))).toString();
-        capablitiesData['Media'] = removePranteces(media);
-
-        String logging = document.findAllElements("$prefix:Envelope")
-        .map((body)=> body.findAllElements("$prefix:Body")
-        .map((getCapabilitiesResponse)=>getCapabilitiesResponse.findAllElements("tds:GetCapabilitiesResponse")
-        .map((capabilities)=> capabilities.findAllElements("tds:Capabilities")
-        .map((device)=> device.findAllElements("tt:Device")
-        .map((system)=>system.findAllElements("tt:System")
-        .map((systemLogging)=> systemLogging.findAllElements("tt:SystemLogging").single.text)))))).toString();
-        capablitiesData['log'] = removePranteces(logging);
-        return capablitiesData;
+Map<String,String> parseGetDeviceInformation(String input) {
+  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetDeviceInformationResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+    });
+  });
+  if (elements.isEmpty) {
+    return {};
   }
-List<NetworkProtocol>parseGetNetworkProtocols(String info){
-    xml.XmlDocument document = xml.parse(info);
-       String prefix = "SOAP-ENV";
-    String name = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getNetworkProtocolsResponse)=> getNetworkProtocolsResponse.findAllElements("tds:GetNetworkProtocolsResponse")
-    .map((networkProtocols)=> networkProtocols.findAllElements("tds:NetworkProtocols")
-    .map((name)=> name.findAllElements("tt:Name").single.text)))).toString();
-    name = removePranteces(name);
-    List<String> names = name.split(',');
 
-    String enabled = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getNetworkProtocolsResponse)=> getNetworkProtocolsResponse.findAllElements("tds:GetNetworkProtocolsResponse")
-    .map((networkProtocols)=> networkProtocols.findAllElements("tds:NetworkProtocols")
-    .map((enabled)=> enabled.findAllElements("tt:Enabled").single.text)))).toString();
-    enabled = removePranteces(enabled);
-    List<String>enableds = enabled.split(',');
+  final result = <String,String>{};
 
-    String port = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getNetworkProtocolsResponse)=> getNetworkProtocolsResponse.findAllElements("tds:GetNetworkProtocolsResponse")
-    .map((networkProtocols)=> networkProtocols.findAllElements("tds:NetworkProtocols")
-    .map((port)=> port.findAllElements("tt:Port").single.text)))).toString();
-    port = removePranteces(port);
-    List<String> ports = port.split(',');
-    List<NetworkProtocol> list = [];
-    for (int i= 0 ; i< names.length ; i++){
-       NetworkProtocol npObject = NetworkProtocol(names[i].trim(), (enableds[i].trim() == 'true'), int.parse(ports[i]));
-       list.add(npObject);
-    }
-    return list;
-  }  
-List<String>parseGetProfiles(String profiles){
-   xml.XmlDocument document = xml.parse(profiles);
-     String prefix = "SOAP-ENV";
-    String token = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getProfilesResponse)=> getProfilesResponse.findAllElements("trt:GetProfilesResponse")
-    .map((profiles)=> profiles.findAllElements("trt:Profiles")
-    .map((token)=> token.attributes)))).toString();
-    token = removePranteces(token);
-    List<String> tokenLists = token.split(',');
-    tokenLists = removeFreeProfileAttributes(tokenLists);
-    return tokenLists;
+  final modelElements = elements.first.findElements('Model', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (modelElements.isNotEmpty) {
+    result['model'] = modelElements.first.text;
+  }
+
+  final serialNumberElements = elements.first.findElements('SerialNumber', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (serialNumberElements.isNotEmpty) {
+    result['serialNumber'] = serialNumberElements.first.text;
+  }
+
+  return result;
 }
-String parseGetMediaUri(String result){
-   xml.XmlDocument document = xml.parse(result);
-     String prefix = "SOAP-ENV";
-    String uri = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("SOAP-ENV:Body")
-    .map((getStreamUri)=> getStreamUri.findAllElements("trt:GetStreamUriResponse")
-    .map((mediaUri)=>mediaUri.findAllElements("trt:MediaUri")
-    .map((uri)=>uri.findAllElements("tt:Uri").single.text)))).toString();
-    return removePranteces(uri);
+
+Map<String,String> parseGetCapabilities(String input) {
+  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetCapabilitiesResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gcr) {
+        return gcr.findElements('Capabilities', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+      });
+    });
+  });
+  if (elements.isEmpty) {
+    return {};
+  }
+
+  final result = <String , String>{};
+
+  final deviceXAddrElements = elements.first.findElements('Device', namespace: 'http://www.onvif.org/ver10/schema').expand((d) {
+    return d.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  });
+  if (deviceXAddrElements.isNotEmpty) {
+    result['XAddr'] = deviceXAddrElements.map((e) => e.text).join(' ');
+  }
+
+  final eventsXAddrElements = elements.first.findElements('Events', namespace: 'http://www.onvif.org/ver10/schema').expand((es) {
+    return es.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  });
+  if (eventsXAddrElements.isNotEmpty) {
+    result['Events'] = eventsXAddrElements.map((e) => e.text).join(' ');
+  }
+
+  final mediaXAddrElements = elements.first.findElements('Media', namespace: 'http://www.onvif.org/ver10/schema').expand((m) {
+    return m.findElements('XAddr', namespace: 'http://www.onvif.org/ver10/schema');
+  });
+  if (mediaXAddrElements.isNotEmpty) {
+    result['Media'] = mediaXAddrElements.map((e) => e.text).join(' ');
+  }
+
+  final systemLoggingElements = elements.first.findElements('Device', namespace: 'http://www.onvif.org/ver10/schema').expand((d) {
+    return d.findElements('System', namespace: 'http://www.onvif.org/ver10/schema').expand((s) {
+      return s.findElements('SystemLogging', namespace: 'http://www.onvif.org/ver10/schema');
+    });
+  });
+  if (systemLoggingElements.isNotEmpty) {
+    result['log'] = systemLoggingElements.map((e) => e.text).join(' ');
+  }
+
+  return result;
+}
+
+List<NetworkProtocol>parseGetNetworkProtocols(String input) {
+  final protocols = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetNetworkProtocolsResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl').expand((gnpr) {
+        return gnpr.findElements('NetworkProtocols', namespace: 'http://www.onvif.org/ver10/device/wsdl').map((nps) {
+          final name = nps.findElements('Name', namespace: 'http://www.onvif.org/ver10/schema');
+          final enabled = nps.findElements('Enabled', namespace: 'http://www.onvif.org/ver10/schema');
+          final port = nps.findElements('Port', namespace: 'http://www.onvif.org/ver10/schema');
+          if (name.isEmpty || enabled.isEmpty || port.isEmpty) {
+            return null;
+          }
+
+          return NetworkProtocol(name.first.text, enabled.first.text == 'true', int.parse(port.first.text));
+        });
+      });
+    });
+  });
+
+  return protocols.where((p) => p != null).toList();
+}
+
+List<String>parseGetProfiles(String input) {
+  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetProfilesResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((gpr) {
+        return gpr.findElements('Profiles', namespace: 'http://www.onvif.org/ver10/media/wsdl').map((ps) {
+          return ps.getAttribute('token');
+        });
+      });
+    });
+  });
+
+  return elements.where((e) => e != null).toList();
+}
+
+String parseGetMediaUri(String input) {
+  final elements = parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetStreamUriResponse', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((gsur) {
+        return gsur.findElements('MediaUri', namespace: 'http://www.onvif.org/ver10/media/wsdl').expand((mu) {
+          return mu.findElements('Uri', namespace: 'http://www.onvif.org/ver10/schema');
+        });
+      });
+    });
+  });
+  if (elements.isEmpty) {
+    return null;
+  }
+
+  return elements.first.text;
 }
