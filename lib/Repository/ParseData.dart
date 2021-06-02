@@ -125,23 +125,31 @@ DateTime parseSystemDateAndTime(String input) {
   );
 }
 
-Map<String,String> parseGetDeviceInformation(String information){
- Map<String,String>deviceInformation = <String,String>{};
-   xml.XmlDocument document = xml.parse(information);
-    String prefix = "SOAP-ENV";
-    String model = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getDeviceInformationResponse)=> getDeviceInformationResponse.findAllElements("tds:GetDeviceInformationResponse")
-    .map((model)=> model.findAllElements("tds:Model").single.text))).toString();
-    deviceInformation['model'] = removePranteces(model);
+Map<String,String> parseGetDeviceInformation(String input) {
+  final elements = xml.parse(input).findElements('Envelope', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((e) {
+    return e.findElements('Body', namespace: 'http://www.w3.org/2003/05/soap-envelope').expand((b) {
+      return b.findElements('GetDeviceInformationResponse', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+    });
+  });
+  if (elements.isEmpty) {
+    return {};
+  }
 
-    String serialNumber = document.findAllElements("$prefix:Envelope")
-    .map((body)=> body.findAllElements("$prefix:Body")
-    .map((getDeviceInformationResponse)=> getDeviceInformationResponse.findAllElements("tds:GetDeviceInformationResponse")
-    .map((serialNumber)=> serialNumber.findAllElements("tds:SerialNumber").single.text))).toString();
-    deviceInformation['serialNumber'] = removePranteces(serialNumber);
-    return deviceInformation;
+  final result = <String,String>{};
+
+  final modelElements = elements.first.findElements('Model', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (modelElements.isNotEmpty) {
+    result['model'] = modelElements.first.text;
+  }
+
+  final serialNumberElements = elements.first.findElements('SerialNumber', namespace: 'http://www.onvif.org/ver10/device/wsdl');
+  if (serialNumberElements.isNotEmpty) {
+    result['serialNumber'] = serialNumberElements.first.text;
+  }
+
+  return result;
 }
+
 Map<String,String> parseGetCapabilities(String information){
    Map <String,String> capablitiesData = <String , String>{};
         xml.XmlDocument document = xml.parse(information);
