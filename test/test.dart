@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
-import 'package:onvif/onvif.dart';
+import 'package:onvif/ONVIF.dart';
 import 'package:onvif/Repository/ParseData.dart';
 
 void main() {
