@@ -1,6 +1,7 @@
 library onvif;
 import 'dart:async';
 import 'package:onvif/Model/OnvifDevice.dart';
+import 'package:onvif/Model/WsUsernameToken.dart';
 import 'BLOC.dart';
 import 'Model/NetworkProtocol.dart';
 import 'Model/Probe.dart';
@@ -38,12 +39,12 @@ ONVIF();
   }
 
   Future<OnvifDevice> _updateCapabilities(String username , String password , OnvifDevice device )async{
-    String message = buildGetDeviceInformationMessage(device , username , password); 
+    String message = buildGetDeviceInformationMessage(WsUsernameToken(username , password, device));
     String information  = await httpPost(device.xAddr, message);
     Map<String, String> deviceInformation = parseGetDeviceInformation(information);
     device.serial = deviceInformation['serialNumber'];
     device.model = deviceInformation['model'];
-    message = buildGetCapabilitiesMessage(device, username, password, "All");
+    message = buildGetCapabilitiesMessage(WsUsernameToken(username, password, device), "All");
     information = await httpPost(device.xAddr, message);
     Map<String,String> capablities = parseGetCapabilities(information);
     device.xAddr = capablities['XAddr'];
@@ -61,7 +62,7 @@ ONVIF();
             networkProtocol.port = 443;
       }
      }
-    String message = buildGetProfilesMessages(device, username, password);
+    String message = buildGetProfilesMessages(WsUsernameToken(username, password, device));
     String profiles = await httpPost(device.mediaXAddr, message);
     List<String> profileList = parseGetProfiles(profiles);
     String targetProfileToken = profileList.last;
@@ -69,14 +70,14 @@ ONVIF();
     streamSetup["stream"] = "RTP-Unicast";
     streamSetup["protocol"] ="HTTP";
     streamSetup["tunnel"] = null;
-    message = buildGetStreamUriMessage(device , username , password, streamSetup, targetProfileToken);
+    message = buildGetStreamUriMessage(WsUsernameToken(username , password, device), streamSetup, targetProfileToken);
     String result = await httpPost(device.mediaXAddr, message);
     return parseGetMediaUri(result);
 
     }
 
     Future<List<NetworkProtocol>> _getNetworkProtocols(OnvifDevice device , String username , String password)async{
-      String message = buildGetNetworkProtocolsMessage(device, username , password);
+      String message = buildGetNetworkProtocolsMessage(WsUsernameToken(username , password, device));
       final info = await httpPost(device.xAddr, message);
       return parseGetNetworkProtocols(info);
     }

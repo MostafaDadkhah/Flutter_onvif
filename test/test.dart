@@ -4,6 +4,9 @@ import 'dart:io';
 import 'package:test/test.dart';
 
 import 'package:onvif/ONVIF.dart';
+import 'package:onvif/Model/OnvifDevice.dart';
+import 'package:onvif/Model/WsUsernameToken.dart';
+import 'package:onvif/Repository/buildMessages.dart';
 import 'package:onvif/Repository/ParseData.dart';
 
 void main() {
@@ -12,7 +15,8 @@ void main() {
   });
 
   test('parseSystemDateAndTime', () async {
-    var input = await File('test/fixtures/GetSystemDateAndTimeResponse.xml').readAsString();
+    var input = await File('test/fixtures/GetSystemDateAndTimeResponse.xml')
+        .readAsString();
     var output = await parseSystemDateAndTime(input);
     expect(output, equals(DateTime(2010, 10, 29, 15, 52, 25)));
   });
@@ -21,14 +25,22 @@ void main() {
     var input = await File('test/fixtures/ProbeMatches.xml').readAsString();
     var output = readProbeMatches(input);
     expect(output['Types'], equals('dn:NetworkVideoTransmitter'));
-    expect(output['Scopes'], equals('onvif://www.onvif.org/type/video_encoder  onvif://www.onvif.org/type/audio_encoder  onvif://www.onvif.org/hardware/MODEL  onvif://www.onvif.org/name/VENDOR%20MODEL  onvif://www.onvif.org/location/ANY'));
-    expect(output['XAddrs'], equals('http://169.254.76.145/onvif/services http://192.168.1.24/onvif/services'));
+    expect(
+        output['Scopes'],
+        equals(
+            'onvif://www.onvif.org/type/video_encoder  onvif://www.onvif.org/type/audio_encoder  onvif://www.onvif.org/hardware/MODEL  onvif://www.onvif.org/name/VENDOR%20MODEL  onvif://www.onvif.org/location/ANY'));
+    expect(
+        output['XAddrs'],
+        equals(
+            'http://169.254.76.145/onvif/services http://192.168.1.24/onvif/services'));
     expect(output['MetadataVersion'], equals('1'));
-    expect(output['Address'], equals('urn:uuid:a1f48ac2-dc8b-11df-b255-00408c1836b2'));
+    expect(output['Address'],
+        equals('urn:uuid:a1f48ac2-dc8b-11df-b255-00408c1836b2'));
   });
 
   test('parseGetCapabilities', () async {
-    var input = await File('test/fixtures/GetCapabilitiesResponse.xml').readAsString();
+    var input =
+        await File('test/fixtures/GetCapabilitiesResponse.xml').readAsString();
     var output = parseGetCapabilities(input);
     expect(output['XAddr'], equals('http://169.254.76.145/onvif/services'));
     expect(output['Events'], equals('http://169.254.76.145/onvif/services'));
@@ -37,14 +49,16 @@ void main() {
   });
 
   test('parseGetDeviceInformation', () async {
-    var input = await File('test/fixtures/GetDeviceInformationResponse.xml').readAsString();
+    var input = await File('test/fixtures/GetDeviceInformationResponse.xml')
+        .readAsString();
     var output = parseGetDeviceInformation(input);
     expect(output['model'], equals('VENDOR MODEL'));
     expect(output['serialNumber'], equals('00408C1836B2'));
   });
 
   test('parseGetNetworkProtocols', () async {
-    var input = await File('test/fixtures/GetNetworkProtocolsResponse.xml').readAsString();
+    var input = await File('test/fixtures/GetNetworkProtocolsResponse.xml')
+        .readAsString();
     var output = parseGetNetworkProtocols(input);
     expect(output[0].name, equals('HTTP'));
     expect(output[0].enabled, equals(true));
@@ -58,14 +72,60 @@ void main() {
   });
 
   test('parseGetProfiles', () async {
-    var input = await File('test/fixtures/GetProfilesResponse.xml').readAsString();
+    var input =
+        await File('test/fixtures/GetProfilesResponse.xml').readAsString();
     var output = parseGetProfiles(input);
     expect(output, equals(['Profile1']));
   });
 
   test('parseGetMediaUri', () async {
-    var input = await File('test/fixtures/GetStreamUriResponse.xml').readAsString();
+    var input =
+        await File('test/fixtures/GetStreamUriResponse.xml').readAsString();
     var output = parseGetMediaUri(input);
     expect(output, equals('rtsp://192.168.0.100/media/video1'));
+  });
+
+  test('buildProbeMessage', () {
+    buildProbeMessage('A4EDC9E2-2EAF-45AF-9E51-02F48AFB99CB');
+  });
+
+  test('buildGetSystemDateAndTimeMessage', () {
+    buildGetSystemDateAndTimeMessage();
+  });
+
+  test('buildGetDeviceInformationMessage', () {
+    final device = OnvifDevice();
+    device.timeOffset = DateTime.now();
+    final token = WsUsernameToken('username', 'password', device);
+    buildGetDeviceInformationMessage(token);
+  });
+
+  test('buildGetCapabilitiesMessage', () {
+    final device = OnvifDevice();
+    device.timeOffset = DateTime.now();
+    final token = WsUsernameToken('username', 'password', device);
+    buildGetCapabilitiesMessage(token, 'ALL');
+  });
+
+  test('buildGetNetworkProtocolsMessage', () {
+    final device = OnvifDevice();
+    device.timeOffset = DateTime.now();
+    final token = WsUsernameToken('username', 'password', device);
+    buildGetNetworkProtocolsMessage(token);
+  });
+
+  test('buildGetProfilesMessages', () {
+    final device = OnvifDevice();
+    device.timeOffset = DateTime.now();
+    final token = WsUsernameToken('username', 'password', device);
+    buildGetProfilesMessages(token);
+  });
+
+  test('buildGetStreamUriMessage', () {
+    final device = OnvifDevice();
+    device.timeOffset = DateTime.now();
+    final token = WsUsernameToken('username', 'password', device);
+    buildGetStreamUriMessage(token,
+        {'protocol': 'protocol', 'stream': 'stream'}, 'targetProfileToken');
   });
 }
